@@ -100,6 +100,10 @@ Field names must match exactly across the producer, the Spark schema and the Cas
 docker-compose up -d
 docker ps
 ```
+Optional: to also start Spark master/worker, Schema Registry and Control Center, run
+`docker-compose --profile extras up -d`. These need noticeably more memory
+(I could not run them on 8 GB).
+
 Wait until `broker` and `webserver` show `healthy` and `cassandra` and `scheduler` are `Up`. The first start can take several minutes.
 
 **2. Trigger the DAG**
@@ -147,13 +151,15 @@ docker-compose down
 | Kafka (from inside Docker) | `broker:29092` |
 | Cassandra | `localhost:9042` |
 | Zookeeper | `localhost:2181` |
-
+| Spark UI  | `localhost:9090 `|
+| schema Registry | `localhost:8081` |
+| Control Center | `localhost:9021` |
 ---
 
 ## Design notes
 
 - **Two Kafka addresses.** The DAG runs inside Docker, so it reaches Kafka at `broker:29092`. The Spark script runs on the host, so it uses `localhost:9092`. Both come from `KAFKA_ADVERTISED_LISTENERS` in the compose file.
-- **Spark runs in local mode.** The script does not set a master, so it does not use a Spark cluster. The `spark-master` and `spark-worker` containers are not required and can be removed from the compose file to save memory.
+- - **Spark runs in local mode.** The script does not set a master, so it does not use the optional Spark containers. They are included (profile `extras`) for experimenting with a cluster later.
 - **Why Kafka sits in the middle.** It decouples the producer from the consumer and keeps the messages, so Spark can read records that were produced before it started (`startingOffsets: earliest`).
 - **Encoding.** Kafka only stores bytes. The producer encodes JSON as UTF-8 and Spark decodes it with `CAST(value AS STRING)`.
 - **Keyspace and table creation** are done with the Cassandra Python driver, not Spark. Spark only writes the data.

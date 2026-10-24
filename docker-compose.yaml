@@ -54,53 +54,55 @@ services:
       timeout: 5s
       retries: 5
 
-  # schema-registry:
-  #   image: confluentinc/cp-schema-registry:7.4.0
-  #   hostname: schema-registry
-  #   container_name: schema-registry
-  #   depends_on:
-  #     broker:
-  #       condition: service_healthy
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry
-  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
-  #     SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-  #   networks:
-  #     - confluent
-  #   healthcheck:
-  #     test: [ "CMD", "curl", "-f", "http://localhost:8081/" ]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-  # control-center:
-  #   image: confluentinc/cp-enterprise-control-center:7.4.0
-  #   hostname: control-center
-  #   container_name: control-center
-  #   depends_on:
-  #     broker:
-  #       condition: service_healthy
-  #     schema-registry:
-  #       condition: service_healthy
-  #   ports:
-  #     - "9021:9021"
-  #   environment:
-  #     CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092'
-  #     CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-  #     CONTROL_CENTER_REPLICATION_FACTOR: 1
-  #     CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
-  #     CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
-  #     CONFLUENT_METRICS_TOPIC_REPLICATION: 1
-  #     CONFLUENT_METRICS_ENABLE: 'false'
-  #     PORT: 9021
-  #   networks:
-  #     - confluent
-  #   healthcheck:
-  #     test: [ "CMD", "curl", "-f", "http://localhost:9021/health" ]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.0
+    profiles: ["extras"]
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      broker:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - confluent
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:7.4.0
+    profiles: ["extras"]
+    hostname: control-center
+    container_name: control-center
+    depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "9021:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092'
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+      CONFLUENT_METRICS_ENABLE: 'false'
+      PORT: 9021
+    networks:
+      - confluent
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9021/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   webserver: #UI of airflow
     image: apache/airflow:2.6.0-python3.9
     command: bash -c "pip install -r /opt/airflow/requirements.txt && airflow db init && airflow users create --username admin --firstname admin --lastname admin --role Admin --email admin@example.com --password admin && airflow webserver"
@@ -160,27 +162,29 @@ services:
     networks:
       - confluent
 
-  # spark-master:
-  #   image: apache/spark:3.4.1
-  #   command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
-  #   ports:
-  #     - "9090:8080"
-  #     - "7077:7077"
-  #   networks:
-  #     - confluent
+  spark-master:
+    image: apache/spark:3.4.1
+    profiles: ["extras"]
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    networks:
+      - confluent
 
-  # spark-worker:
-  #   image: apache/spark:3.4.1
-  #   command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
-  #   depends_on:
-  #     - spark-master
-  #   environment:
-  #     SPARK_MODE: worker
-  #     SPARK_WORKER_CORES: 2
-  #     SPARK_WORKER_MEMORY: 1g
-  #     SPARK_MASTER_URL: spark://spark-master:7077
-  #   networks:
-  #     - confluent
+  spark-worker:
+    image: apache/spark:3.4.1
+    profiles: ["extras"]
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+    networks:
+      - confluent
 
   cassandra_db:
     image: cassandra:4.1
